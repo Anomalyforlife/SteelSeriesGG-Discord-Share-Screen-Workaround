@@ -1,0 +1,97 @@
+name: Build & Release
+
+on:
+  push:
+    paths:
+      - 'version.txt'
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read version
+        id: version
+        shell: pwsh
+        run: |
+          $ver = (Get-Content version.txt -Raw).Trim()
+          echo "VERSION=$ver" >> $env:GITHUB_OUTPUT
+          echo "Version: $ver"
+
+      - name: Compile MuteDiscord.exe
+        shell: pwsh
+        run: |
+          $csc = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          & $csc /target:winexe `
+                 /win32icon:assets\icon.ico `
+                 /reference:System.Windows.Forms.dll `
+                 /reference:System.Drawing.dll `
+                 /out:MuteDiscord.exe `
+                 MuteDiscord.cs
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Embed assets into Installer.cs
+        shell: pwsh
+        run: |
+          $src = [System.IO.File]::ReadAllText("Installer.cs", [System.Text.Encoding]::UTF8)
+
+          # Rimuove array embedded precedenti
+          $src = [regex]::Replace($src, '(?s)\s*static readonly byte\[\] DaemonExe = new byte\[\] \{[^}]*\};', '')
+          $src = [regex]::Replace($src, '(?s)\s*static readonly byte\[\] IconPng = new byte\[\] \{[^}]*\};', '')
+
+          # Genera DaemonExe
+          $exeBytes = [System.IO.File]::ReadAllBytes("MuteDiscord.exe")
+          $sb = New-Object System.Text.StringBuilder
+          $null = $sb.AppendLine("`n    static readonly byte[] DaemonExe = new byte[] {")
+          for ($i = 0; $i -lt $exeBytes.Length; $i += 16) {
+              $end = [Math]::Min($i + 16, $exeBytes.Length) - 1
+              $chunk = ($exeBytes[$i..$end] | ForEach-Object { "0x$($_.ToString("X2"))" }) -join ","
+              if ($i + 16 -lt $exeBytes.Length) { $null = $sb.AppendLine("        $chunk,") }
+              else { $null = $sb.AppendLine("        $chunk") }
+          }
+          $null = $sb.AppendLine("    };")
+
+          # Genera IconPng
+          $pngBytes = [System.IO.File]::ReadAllBytes("assets\icon.png")
+          $null = $sb.AppendLine("    static readonly byte[] IconPng = new byte[] {")
+          for ($i = 0; $i -lt $pngBytes.Length; $i += 16) {
+              $end = [Math]::Min($i + 16, $pngBytes.Length) - 1
+              $chunk = ($pngBytes[$i..$end] | ForEach-Object { "0x$($_.ToString("X2"))" }) -join ","
+              if ($i + 16 -lt $pngBytes.Length) { $null = $sb.AppendLine("        $chunk,") }
+              else { $null = $sb.AppendLine("        $chunk") }
+          }
+          $null = $sb.AppendLine("    };")
+
+          $src = $src -replace 'class Installer \{', "class Installer {$($sb.ToString())"
+          [System.IO.File]::WriteAllText("Installer.cs", $src, [System.Text.Encoding]::UTF8)
+          echo "Embedded: EXE=$($exeBytes.Length)B PNG=$($pngBytes.Length)B"
+
+      - name: Compile Installer.exe
+        shell: pwsh
+        run: |
+          $csc = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          & $csc /target:exe `
+                 /win32icon:assets\icon.ico `
+                 /out:Installer.exe `
+                 Installer.cs
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.VERSION }}
+          name: MuteDiscord v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## MuteDiscord v${{ steps.version.outputs.VERSION }}
+
+            Scarica `Installer.exe` ed eseguilo per installare MuteDiscord.
+          files: Installer.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
