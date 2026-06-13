@@ -37,6 +37,7 @@ jobs:
         run: |
           & "${{ steps.csc.outputs.PATH }}" /target:winexe `
                  /win32icon:assets\icon.ico `
+                 /win32manifest:MuteDiscord.manifest `
                  /reference:System.Windows.Forms.dll `
                  /reference:System.Drawing.dll `
                  /out:MuteDiscord.exe `
@@ -48,6 +49,7 @@ jobs:
         run: |
           & "${{ steps.csc.outputs.PATH }}" /target:exe `
                  /win32icon:assets\icon.ico `
+                 /win32manifest:Installer.manifest `
                  /resource:MuteDiscord.exe,MuteDiscord.exe `
                  /resource:assets\icon.png,icon.png `
                  /out:Installer.exe `
