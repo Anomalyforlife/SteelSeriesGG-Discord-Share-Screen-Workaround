@@ -82,3 +82,9 @@ Edit this file anytime to add or remove devices. No reinstall needed.
 
 - This only mutes Discord in the **Windows Volume Mixer** — it does not touch your mic or Discord's own mute button
 - To disable startup launch, run `Installer.exe` again and toggle the option off
+
+---
+
+## Keywords
+
+steelseries sonar discord screen share echo steelseries gg discord bug discord screen sharing audio fix sonar virtual audio device discord echo fix discord microphone bleed discord mute volume mixer windows
