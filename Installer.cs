@@ -140,6 +140,25 @@ class Installer {
 
         if (!Directory.Exists(installDir)) Directory.CreateDirectory(installDir);
 
+        // Check if MuteDiscord is already running
+        var running = System.Diagnostics.Process.GetProcessesByName("MuteDiscord");
+        if (running.Length > 0) {
+            Warn("MuteDiscord is currently running.");
+            Console.WriteLine("  Close it now, then press any key to continue (or Escape to cancel).");
+            while (true) {
+                var k = Console.ReadKey(true);
+                if (k.Key == ConsoleKey.Escape) {
+                    Err("Installation cancelled.");
+                    Console.ReadKey();
+                    return;
+                }
+                if (System.Diagnostics.Process.GetProcessesByName("MuteDiscord").Length == 0) break;
+                Warn("MuteDiscord is still running. Close it and press any key again.");
+            }
+            Ok("MuteDiscord closed.");
+            Console.WriteLine();
+        }
+
         // Extract embedded resources
         var asm = Assembly.GetExecutingAssembly();
 
