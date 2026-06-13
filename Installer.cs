@@ -1,4 +1,5 @@
-﻿using System;
+﻿#pragma warning disable CA1416 // Windows-only APIs — this tool targets Windows exclusively
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
