@@ -167,7 +167,7 @@ class Installer {
             Warn("No devices detected. You will need to enter device names manually.");
         } else {
             for (int i = 0; i < allDevices.Count; i++) {
-                string marker = allDevices[i].IndexOf("SteelSeries Sonar") >= 0 ? " ◄ default" : "";
+                string marker = allDevices[i].IndexOf("SteelSeries Sonar - Microphone", StringComparison.OrdinalIgnoreCase) >= 0 ? " ◄ default" : "";
                 Console.ForegroundColor = ConsoleColor.DarkGray;
                 Console.Write("  [" + (i + 1) + "] ");
                 Console.ResetColor();
@@ -195,7 +195,7 @@ class Installer {
         if (string.IsNullOrEmpty(selection)) {
             bool found = false;
             foreach (var d in allDevices)
-                if (d.IndexOf("SteelSeries Sonar", StringComparison.OrdinalIgnoreCase) >= 0) {
+                if (d.IndexOf("SteelSeries Sonar - Microphone", StringComparison.OrdinalIgnoreCase) >= 0) {
                     selectedDevices.Add(d); found = true;
                 }
             if (!found) {
