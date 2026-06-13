@@ -269,12 +269,8 @@ class Installer {
         Console.WriteLine("══════════════════════════════════════════");
         Console.ResetColor();
         Console.WriteLine();
-        Console.WriteLine("Run MuteDiscord with:");
-        Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.WriteLine("  \"" + destExe + "\"");
-        Console.ResetColor();
-        Console.WriteLine();
-        Console.WriteLine("Press any key to exit.");
+        Console.WriteLine("Press any key to launch MuteDiscord and exit.");
         Console.ReadKey();
+        System.Diagnostics.Process.Start(destExe);
     }
 }
