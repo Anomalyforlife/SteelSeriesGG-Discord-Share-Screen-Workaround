@@ -1,4 +1,4 @@
-#pragma warning disable CA1416 // Windows-only APIs — this tool targets Windows exclusively
+// Windows-only application — platform warnings suppressed
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -102,7 +102,7 @@ class DeviceEditorForm : Form {
     public List<string> Devices { get; private set; }
 
     public DeviceEditorForm(List<string> current) {
-        this.Text = "MuteDiscord — Modifica dispositivi";
+        this.Text = "MuteDiscord — Edit devices";
         this.Width = 560;
         this.Height = 320;
         this.FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -122,7 +122,7 @@ class DeviceEditorForm : Form {
         } catch { }
 
         var label = new Label {
-            Text = "Dispositivi monitorati (uno per riga):",
+            Text = "Monitored devices (one per line):",
             Top = 12, Left = 12, Width = 520, ForeColor = Color.White
         };
 
@@ -135,14 +135,14 @@ class DeviceEditorForm : Form {
         };
 
         var btnSave = new Button {
-            Text = "Salva", Top = 228, Left = 408, Width = 124, Height = 32,
+            Text = "Save", Top = 228, Left = 408, Width = 124, Height = 32,
             BackColor = Color.FromArgb(88, 101, 242), ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat
         };
         btnSave.FlatAppearance.BorderSize = 0;
 
         var btnCancel = new Button {
-            Text = "Annulla", Top = 228, Left = 276, Width = 124, Height = 32,
+            Text = "Cancel", Top = 228, Left = 276, Width = 124, Height = 32,
             BackColor = Color.FromArgb(60, 60, 60), ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat
         };
@@ -154,7 +154,7 @@ class DeviceEditorForm : Form {
             var trimmed = new List<string>();
             foreach (var l in lines) { var t = l.Trim(); if (t.Length > 0) trimmed.Add(t); }
             if (trimmed.Count < 2) {
-                MessageBox.Show("Inserisci almeno 2 dispositivi.", "MuteDiscord",
+                MessageBox.Show("Please enter at least 2 devices.", "MuteDiscord",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -192,13 +192,13 @@ class MuteDiscordApp : ApplicationContext {
 
         Icon trayIco = LoadIcon(exeDir);
 
-        var menuDevices = new MenuItem("Modifica dispositivi", OnEditDevices);
+        var menuDevices = new MenuItem("Edit devices", OnEditDevices);
         var menuSep     = new MenuItem("-");
-        var menuExit    = new MenuItem("Esci", OnExit);
+        var menuExit    = new MenuItem("Exit", OnExit);
 
         trayIcon = new NotifyIcon {
             Icon    = trayIco,
-            Text    = "MuteDiscord — in ascolto...",
+            Text    = "MuteDiscord — listening...",
             Visible = true,
             ContextMenu = new ContextMenu(new[] { menuDevices, menuSep, menuExit })
         };

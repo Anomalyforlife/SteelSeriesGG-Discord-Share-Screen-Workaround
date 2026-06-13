@@ -1,12 +1,10 @@
-﻿#pragma warning disable CA1416 // Windows-only APIs — this tool targets Windows exclusively
+// Windows-only application — platform warnings suppressed
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-
-// ---- COM per enumerare dispositivi audio reali ----
 
 [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
 class MMDeviceEnumeratorCoClass { }
@@ -50,10 +48,6 @@ struct PropertyKey { public Guid fmtid; public uint pid; }
 [StructLayout(LayoutKind.Sequential)]
 struct PropVariant { public short vt; short r1, r2, r3; public IntPtr p; int p2; }
 
-// ---- Registry ----
-[ComImport, Guid("00000000-0000-0000-0000-000000000000")]
-class Unused { }
-
 class Installer {
 
     static readonly PropertyKey PKEY_FriendlyName = new PropertyKey {
@@ -61,7 +55,7 @@ class Installer {
     };
 
     const string REG_RUN_KEY = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
-    const string APP_NAME       = "MuteDiscord";
+    const string APP_NAME    = "MuteDiscord";
 
     static List<string> GetAudioDevices() {
         var list = new List<string>();
@@ -130,48 +124,47 @@ class Installer {
     static void Main() {
         PrintHeader();
 
-        // --- Cartella di installazione ---
+        // --- Install directory ---
         string defaultInstallDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "MuteDiscord");
 
-        Console.WriteLine("Cartella di installazione:");
+        Console.WriteLine("Install directory:");
         Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.WriteLine("  [Invio per usare: " + defaultInstallDir + "]");
+        Console.WriteLine("  [Press Enter to use: " + defaultInstallDir + "]");
         Console.ResetColor();
         Console.Write("> ");
         string input = Console.ReadLine().Trim();
         string installDir = string.IsNullOrEmpty(input) ? defaultInstallDir : input;
         Console.WriteLine();
 
-        // Crea la cartella se non esiste
         if (!Directory.Exists(installDir)) Directory.CreateDirectory(installDir);
 
-        // Estrae le risorse embedded
+        // Extract embedded resources
         var asm = Assembly.GetExecutingAssembly();
 
         string destExe = Path.Combine(installDir, "MuteDiscord.exe");
         using (var src = asm.GetManifestResourceStream("MuteDiscord.exe"))
         using (var dst = File.Create(destExe))
             src.CopyTo(dst);
-        Ok("MuteDiscord.exe installato in: " + installDir);
+        Ok("MuteDiscord.exe installed to: " + installDir);
 
         string assetsDir = Path.Combine(installDir, "assets");
         if (!Directory.Exists(assetsDir)) Directory.CreateDirectory(assetsDir);
         using (var src = asm.GetManifestResourceStream("icon.png"))
         using (var dst = File.Create(Path.Combine(assetsDir, "icon.png")))
             src.CopyTo(dst);
-        Ok("assets/icon.png estratto.");
+        Ok("assets/icon.png extracted.");
 
-        // --- Selezione dispositivi ---
+        // --- Device selection ---
         Console.WriteLine();
         Console.ForegroundColor = ConsoleColor.White;
-        Console.WriteLine("Dispositivi audio di riproduzione rilevati:");
+        Console.WriteLine("Active playback devices detected:");
         Console.ResetColor();
 
         var allDevices = GetAudioDevices();
         if (allDevices.Count == 0) {
-            Warn("Nessun dispositivo rilevato. Inserisci i nomi manualmente.");
+            Warn("No devices detected. You will need to enter device names manually.");
         } else {
             for (int i = 0; i < allDevices.Count; i++) {
                 string marker = allDevices[i].IndexOf("SteelSeries Sonar") >= 0 ? " ◄ default" : "";
@@ -184,14 +177,14 @@ class Installer {
 
         Console.WriteLine();
         Console.ForegroundColor = ConsoleColor.White;
-        Console.WriteLine("Devi selezionare DUE dispositivi:");
+        Console.WriteLine("Select TWO devices to monitor:");
         Console.ResetColor();
         Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.WriteLine("  1) SteelSeries Sonar - Microphone  (causa la cattura del microfono)");
-        Console.WriteLine("  2) Le tue cuffie                   (causa il doppio audio Discord)");
+        Console.WriteLine("  1) SteelSeries Sonar - Microphone  (causes mic bleed into stream)");
+        Console.WriteLine("  2) Your headset                    (causes double Discord audio)");
         Console.WriteLine();
-        Console.WriteLine("  Digita i numeri separati da virgola (es: 1,3)");
-        Console.WriteLine("  oppure Invio per selezionare automaticamente SteelSeries Sonar.");
+        Console.WriteLine("  Enter two numbers separated by a comma (e.g. 1,3)");
+        Console.WriteLine("  or press Enter to auto-select SteelSeries Sonar.");
         Console.ResetColor();
         Console.Write("> ");
         string selection = Console.ReadLine().Trim();
@@ -200,22 +193,19 @@ class Installer {
         var selectedDevices = new List<string>();
 
         if (string.IsNullOrEmpty(selection)) {
-            // Default: tutti i dispositivi SteelSeries Sonar trovati
             bool found = false;
             foreach (var d in allDevices)
                 if (d.IndexOf("SteelSeries Sonar", StringComparison.OrdinalIgnoreCase) >= 0) {
                     selectedDevices.Add(d); found = true;
                 }
             if (!found) {
-                Warn("SteelSeries Sonar non trovato. Inserisci il nome manualmente:");
+                Warn("SteelSeries Sonar not found. Enter the device name manually:");
                 Console.Write("> ");
                 string manual = Console.ReadLine().Trim();
                 if (!string.IsNullOrEmpty(manual)) selectedDevices.Add(manual);
             }
-            // Ricorda di aggiungere le cuffie
-            Warn("Ricorda: devi aggiungere anche le tue cuffie (vedi step successivo).");
+            Warn("You still need to select your headset. Re-run and select both devices by number.");
         } else {
-            // Selezione per numero
             foreach (var part in selection.Split(',')) {
                 int idx;
                 if (int.TryParse(part.Trim(), out idx) && idx >= 1 && idx <= allDevices.Count)
@@ -223,65 +213,49 @@ class Installer {
             }
         }
 
-        // Aggiunta dispositivi extra manualmente
-        Console.WriteLine("Vuoi aggiungere altri dispositivi? (es. le tue cuffie) (s/N)");
-        Console.Write("> ");
-        string addMore = Console.ReadLine().Trim().ToLower();
-        while (addMore == "s" || addMore == "si" || addMore == "y") {
-            Console.WriteLine("Nome dispositivo (esatto, come appare nel mixer audio di Windows):");
-            Console.Write("> ");
-            string extra = Console.ReadLine().Trim();
-            if (!string.IsNullOrEmpty(extra)) { selectedDevices.Add(extra); Ok("Aggiunto: " + extra); }
-            Console.WriteLine("Aggiungere un altro? (s/N)");
-            Console.Write("> ");
-            addMore = Console.ReadLine().Trim().ToLower();
-        }
-
         if (selectedDevices.Count < 2) {
-            Err("Devi selezionare esattamente 2 dispositivi: SteelSeries Sonar Microphone e le tue cuffie.");
-            Err("Rilancia l'installer e seleziona entrambi.");
-            Console.WriteLine("\nPremi un tasto per uscire.");
+            Err("You must select exactly 2 devices: SteelSeries Sonar Microphone and your headset.");
+            Err("Re-run the installer and select both.");
+            Console.WriteLine("\nPress any key to exit.");
             Console.ReadKey();
             return;
         }
 
         Console.WriteLine();
         Console.ForegroundColor = ConsoleColor.White;
-        Console.WriteLine("Dispositivi che verranno monitorati:");
+        Console.WriteLine("Devices that will be monitored:");
         Console.ResetColor();
         foreach (var d in selectedDevices) Ok(d);
 
-        // Scrivi config.json
         WriteConfig(installDir, selectedDevices);
-        Ok("config.json scritto.");
+        Ok("config.json written.");
 
-        // --- Avvio automatico ---
+        // --- Windows startup ---
         Console.WriteLine();
         bool startupEnabled = GetStartupEnabled();
-        Console.WriteLine("Avvio automatico con Windows: " +
-            (startupEnabled ? "già abilitato" : "non abilitato"));
-        Console.WriteLine("Vuoi " + (startupEnabled ? "disabilitarlo" : "abilitarlo") + "? (s/N)");
+        Console.WriteLine("Launch at Windows startup: " + (startupEnabled ? "already enabled" : "not enabled"));
+        Console.WriteLine((startupEnabled ? "Disable" : "Enable") + " it? (y/N)");
         Console.Write("> ");
         string toggleStartup = Console.ReadLine().Trim().ToLower();
-        if (toggleStartup == "s" || toggleStartup == "si" || toggleStartup == "y") {
+        if (toggleStartup == "y" || toggleStartup == "yes") {
             SetStartup(destExe, !startupEnabled);
-            Ok((!startupEnabled ? "Abilitato" : "Disabilitato") + " avvio automatico.");
+            Ok((startupEnabled ? "Disabled" : "Enabled") + " launch at startup.");
         }
 
-        // --- Riepilogo ---
+        // --- Summary ---
         Console.WriteLine();
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine("══════════════════════════════════════════");
-        Console.WriteLine("  Installazione completata!");
+        Console.WriteLine("  Installation complete!");
         Console.WriteLine("══════════════════════════════════════════");
         Console.ResetColor();
         Console.WriteLine();
-        Console.WriteLine("Avvia MuteDiscord con:");
+        Console.WriteLine("Run MuteDiscord with:");
         Console.ForegroundColor = ConsoleColor.DarkGray;
         Console.WriteLine("  \"" + destExe + "\"");
         Console.ResetColor();
         Console.WriteLine();
-        Console.WriteLine("Premi un tasto per uscire.");
+        Console.WriteLine("Press any key to exit.");
         Console.ReadKey();
     }
 }
